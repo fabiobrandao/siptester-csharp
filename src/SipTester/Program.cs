@@ -1,66 +1,110 @@
-﻿using System;
-using Independentsoft.Sip;
+﻿using Independentsoft.Sip;
 using Independentsoft.Sip.Methods;
+using System;
+using System.Configuration;
 
 namespace SipTester
 {
     class Program
     {
         private static Logger logger;
-        private static SipClient clientSIP;
+        private static SipClient client;
+        private static Register register;
+        private static string sipDomain = ConfigurationManager.AppSettings["SipDomain"];
+        private static string sipLogin = ConfigurationManager.AppSettings["SipLogin"];
+        private static string sipPassword = ConfigurationManager.AppSettings["SipPassword"];
+        private static string sipProtocolType = ConfigurationManager.AppSettings["SipProtocolType"];
 
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
-            /*
-             Use miniSipServer to create the test server
-             */
+            register = new Register();
+            Connect();
+        }
 
-            string sipDomain = "10.0.0.52";
-            string sipLogin = "101";
-            string sipPassword = "101";
-            string localIp = "10.0.0.55";
+        private static void Connect()
+        {
+            try
+            {
+                // Configure client
+                if (sipProtocolType == "tcp")
+                    client = new SipClient(sipDomain, ProtocolType.Tcp, sipLogin, sipPassword);
+                else if (sipProtocolType == "upd")
+                    client = new SipClient(sipDomain, ProtocolType.Udp, sipLogin, sipPassword);
+                else
+                    client = new SipClient(sipDomain, sipLogin, sipPassword);
+                client.Timeout = 5000;
 
-            clientSIP = new SipClient(sipDomain, sipLogin, sipPassword);
+                // Log Register
+                if (logger == null)
+                {
+                    logger = new Logger();
+                    logger.WriteLog += new WriteLogEventHandler(OnWriteLog);
+                }
 
-            logger = new Logger();
-            logger.WriteLog += new WriteLogEventHandler(OnWriteLog);
-            clientSIP.Logger = logger;
+                client.Logger = logger;
 
-            clientSIP.ReceiveRequest += new ReceiveRequestEventHandler(OnReceiveRequest);
-            clientSIP.ReceiveResponse += new ReceiveResponseEventHandler(OnReceiveResponse);
+                // Events Register                
+                client.ReceiveRequest += new ReceiveRequestEventHandler(OnReceiveRequest);
+                client.ReceiveResponse += new ReceiveResponseEventHandler(OnReceiveResponse);
 
-            System.Net.IPAddress localAddress = System.Net.IPAddress.Parse(localIp);
-            clientSIP.LocalIPEndPoint = new System.Net.IPEndPoint(localAddress, 5060);
+                Console.WriteLine(">> SIP Tester");
+                Console.WriteLine("");
+                Console.WriteLine("Domain...: " + sipDomain);
+                Console.WriteLine("Login....: " + sipLogin);
+                Console.WriteLine("Password.: " + sipPassword);
+                Console.WriteLine("Protocol.: " + sipProtocolType);
+                Console.WriteLine("");
 
-            clientSIP.Connect();
+                // Client Connect
+                client.Connect();
 
-            Register register = new Register();
-            register.Uri = string.Format("sip:{0}", sipDomain);
-            register.From = new ContactInfo(sipLogin, string.Format("sip:{0}@{1}", sipLogin, sipDomain));
-            register.To = new ContactInfo(sipLogin, string.Format("sip:{0}@{1}", sipLogin, sipDomain));
-            register.Header[StandardHeader.Contact] = string.Format("sip:{0}@", sipLogin) + clientSIP.LocalIPEndPoint.ToString();
-            register.Expires = 1200;
-            clientSIP.SendRequest(register);
+                register.Uri = string.Format("sip:{0}", sipDomain);
+                register.From = new ContactInfo(sipLogin, string.Format("sip:{0}@{1}", sipLogin, sipDomain));
+                register.To = new ContactInfo(sipLogin, string.Format("sip:{0}@{1}", sipLogin, sipDomain));
+                register.Header[StandardHeader.Contact] = string.Format("sip:{0}@{1}", sipLogin, client.LocalIPEndPoint.ToString());
+                register.Expires = 300;
 
-            Console.Write("Press any key to continue...");
-            Console.ReadLine();
+                client.SendRequest(register);
 
-            clientSIP.Unregister(register.Uri, register.From);
+                Console.WriteLine("");
+                Console.WriteLine("Press any key to unregister, disconnect and reconnect! Press CTRL + C to abort...");
+                Console.ReadLine();
+
+                client.Unregister(register.Uri, register.From);
+                client.Disconnect();
+
+                Connect();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                Console.WriteLine("");
+                Console.WriteLine("Press any key to exit...");
+                Console.ReadLine();
+            }
         }
 
         private static void OnReceiveRequest(object sender, RequestEventArgs e)
         {
-            Console.WriteLine("OnReceiveRequest");
+            client.AcceptRequest(e.Request);
+
+            Console.WriteLine(string.Format("ReceiveRequest From {0} CallID {1}", e.Request.From, e.Request.CallID));
         }
 
         private static void OnReceiveResponse(object sender, ResponseEventArgs e)
-        {
-            Console.WriteLine("OnReceiveResponse");
+        {            
+            Console.WriteLine(string.Format("Receive PABX message, StatusCode [{0}], operation [{1}] Fom {2}", e.Response.StatusCode , e.Response.CSeq.ToUpper(), e.Response.From.Name));
+
+            if (e.Response.StatusCode == 200)
+            {
+                Console.Beep();
+                Console.WriteLine(string.Format("{0} - NUMBER REGISTERED!", e.Response.From.Name));
+            }
         }
 
         private static void OnWriteLog(object sender, WriteLogEventArgs e)
         {
             Console.WriteLine(e.Log);
-        }    
+        }
     }
 }

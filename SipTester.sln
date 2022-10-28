@@ -5,6 +5,8 @@ VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SipTester", "src\SipTester\SipTester.csproj", "{1B59016E-833E-43F4-A5C8-3E4D1B0BC4F3}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Application", "Application", "{DB5F1FC4-A74E-4389-A3F2-1E8C97BCDA6D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1B59016E-833E-43F4-A5C8-3E4D1B0BC4F3} = {DB5F1FC4-A74E-4389-A3F2-1E8C97BCDA6D}
 	EndGlobalSection
 EndGlobal
