@@ -1,8 +1,8 @@
 # SIP Tester CSharp
-Simples aplicação para teste de conectividade utilizando o protocolo SIP.
+Simples aplicação para teste de conectividade utilizando o protocolo SIP com C#.
 
 # Objetivo
-Este projeto apresenta de forma simples como registrar um ramal utilizando o protocolo SIP por meio da biblioteca Independetsoft.
+Este projeto apresenta de forma simples como registrar um ramal utilizando o protocolo SIP por meio da biblioteca Independetsoft em C#.
 
 ## Feedback
 
